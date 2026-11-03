@@ -1,7 +1,6 @@
-import pygame
-import pygame_widgets
-from pygame_widgets.slider import Slider
-from pygame_widgets.textbox import TextBox
+from matplotlib.container import BarContainer
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 
 MASKS = {
     0: 24,
@@ -13,96 +12,43 @@ MASKS = {
     252: 30
     }
 
+fig, ax = plt.subplots(figsize=(10, 3))
+plt.subplots_adjust(bottom=0.35)
 
-def closest(val: int, allowed: list[int]):
-    best = allowed[0]
-    best_diff = abs(allowed[0] - val)
+ax.set_xlim(0, 256)
+ax.set_ylim(0, 1)
+ax.set_yticks([])
 
-    for a in allowed:
-        if abs(a - val) < best_diff:
-            best = a
-            best_diff = abs(a - val)
+ax.barh(0.5, 256, left=0, height=0.3, color="#ddd")
 
-    return best
-
-
-class MaskSlider:
-    def __init__(self, win: pygame.Surface):
-        self.win = win
-        self.slider = Slider(win, x=0, y=50, width=100, height=20,
-                             min=0, max=255, step=1)
-
-    def layout(self):
-        width = self.win.get_width()
-        self.slider.setX(int(width * 0.1))
-        self.slider.setWidth(int(width * 0.8))
-
-    def round(self) -> int:
-        user = self.slider.getValue()
-        rounded = closest(user, list(MASKS.keys()))
-        self.slider.setValue = rounded
-        return rounded
-
-    def force_value(self, val: int):
-        self.slider = Slider(win, x=0, y=50, width=100, height=20, min=0,
-                             max=255, step=1, initial=val)
-        print(self.slider.getValue())
-        self.layout()
+current: list[BarContainer | plt.Text] = []
 
 
-class Text:
-    def __init__(self, win: pygame.Surface):
-        # self.box = TextBox(win, , 80, 100, 20)
-        self.box = TextBox(win, win.get_width()/2, 80, 150, 50, fontSize=30)
-        self.win = win
+def draw(mask):
+    size = 256 - mask
 
-    def render(self, val: int):
-        self.box.setText(f"{val}: /{MASKS[val]}")
+    for bar in current:
+        bar.remove()
+    current.clear()
 
+    for sub in range(256 // size):
+        first = size * sub
+        left = size * sub
+        container = ax.barh(0.5, size, left=left, height=0.3,
+                            color="tab:blue" if sub % 2 == 0 else "tab:red")
+        left_id = ax.text(left, 0.5, str(first))
+        current.extend(container.patches)
+        current.append(left_id)
 
-class Line:
-    def __init__(self, win: pygame.Surface):
-        self.win = win
-
-    def render(self) -> None:
-        height = self.win.get_height()
-        width = self.win.get_width()
-
-        pygame.draw.rect(self.win, 'black', pygame.Rect(
-            width * 0.1,
-            (height - 70) * 0.4,
-            width*0.8,
-            min(100, (height - 70) * 0.8)
-        ), width=5)
+    ax.set_title(f"masque {mask} (/{MASKS[mask]}) : "
+                 f"{256 // size} sous-réseaux de {size} adresses")
+    fig.canvas.draw_idle()
 
 
-pygame.init()
-win = pygame.display.set_mode((1000, 600), pygame.RESIZABLE)
+ax_slider = plt.axes((0.15, 0.1, 0.7, 0.05))
+slider = Slider(ax_slider, "Masque", 0, 252, valinit=0,
+                valstep=list(MASKS.keys()))
+slider.on_changed(draw)
 
-slider = MaskSlider(win)
-slider.layout()
-text = Text(win)
-line = Line(win)
-
-run = True
-while run:
-    events = pygame.event.get()
-
-    for event in events:
-        if event.type == pygame.QUIT:
-            run = False
-        elif event.type == pygame.VIDEORESIZE:
-            slider.layout()
-        elif event.type == pygame.MOUSEBUTTONUP:
-            val = slider.round()
-            slider.force_value(val)
-
-    win.fill((255, 255, 255))
-
-    val = slider.round()
-    text.render(val)
-    line.render()
-    pygame_widgets.update(events)
-    pygame.display.update()
-
-pygame.quit()
+draw(0)
+plt.show()
