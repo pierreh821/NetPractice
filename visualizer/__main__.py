@@ -30,6 +30,7 @@ class Visualizer:
         self.current = []
 
     def draw(self, mask):
+        self.mask = mask
         size = 256 - mask
 
         for bar in self.current:
@@ -50,8 +51,24 @@ class Visualizer:
                           f"{256 // size} subnets of {size} adresses each")
         self.fig.canvas.draw_idle()
 
+    def on_scroll(self, event):
+        authorized = list(MASKS.keys())
+
+        if event.button == 'up':
+            id = authorized.index(self.mask)
+            new = authorized[min(id + 1, len(authorized) - 1)]
+        else:
+            id = authorized.index(self.mask)
+            new = authorized[max(id - 1, 0)]
+
+        self.mask = new
+        self.slider.set_val(new)
+        self.draw(new)
+
+
     def run(self):
         self.slider.on_changed(self.draw)
+        self.fig.canvas.mpl_connect('scroll_event', self.on_scroll)
         self.draw(0)
         plt.show()
 
