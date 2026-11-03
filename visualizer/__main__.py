@@ -12,8 +12,15 @@ MASKS = {
         }
 
 
+def bin_to_dec(mask: int, byte: int):
+    res = ['1' * 8 for _ in range(byte - 1)]
+    res.append(str(bin(mask)))
+    return ''.join(res).count('1')
+
+
 class Visualizer:
     def __init__(self):
+        self.byte = 4
         self.fig, self.ax = plt.subplots(figsize=(10, 3))
         plt.subplots_adjust(bottom=0.35)
 
@@ -27,7 +34,15 @@ class Visualizer:
         self.slider = Slider(self.ax_slider, "Mask", 0, 252,
                              valinit=0, valstep=list(MASKS.keys()))
 
+        self.ay_slider = plt.axes((0.02, 0.25, 0.0225, 0.63))
+        self.b_slider = Slider(self.ay_slider, "Byte", 1, 4,
+                               valinit=4, valstep=1, orientation='vertical')
+
         self.current = []
+
+    def draw_byte_changed(self, byte: int):
+        self.byte = byte
+        self.draw(self.mask)
 
     def draw(self, mask):
         self.mask = mask
@@ -47,27 +62,43 @@ class Visualizer:
             self.current.extend(container.patches)
             self.current.append(left_id)
 
-        self.ax.set_title(f"mask {mask} (/{MASKS[mask]}) : "
+        self.ax.set_title(f"mask {mask} (/{bin_to_dec(mask, self.byte)}) : "
                           f"{256 // size} subnets of {size} adresses each")
         self.fig.canvas.draw_idle()
 
     def on_scroll(self, event):
-        authorized = list(MASKS.keys())
+        auth_masks = list(MASKS.keys())
 
-        if event.button == 'up':
-            id = authorized.index(self.mask)
-            new = authorized[min(id + 1, len(authorized) - 1)]
-        else:
-            id = authorized.index(self.mask)
-            new = authorized[max(id - 1, 0)]
+        window = self.fig.get_window_extent()
+        x, y = event.x, event.y
+        wx, wy = window.x1, window.y1
+        rx, ry = x / wx, y / wy
 
-        self.mask = new
-        self.slider.set_val(new)
-        self.draw(new)
+        if rx > 0.12 or ry < 0.21:  # Mask
+            if event.button == 'up':
+                id = auth_masks.index(self.mask)
+                new = auth_masks[min(id + 1, len(auth_masks) - 1)]
+            else:
+                id = auth_masks.index(self.mask)
+                new = auth_masks[max(id - 1, 0)]
 
+            self.mask = new
+            self.slider.set_val(new)
+
+        else:  # Bytes
+            if event.button == 'up':
+                new = min(self.byte + 1, 4)
+            else:
+                new = max(self.byte - 1, 1)
+
+            self.byte = new
+            self.b_slider.set_val(new)
+
+        self.draw(self.mask)
 
     def run(self):
         self.slider.on_changed(self.draw)
+        self.b_slider.on_changed(self.draw_byte_changed)  # pas adapte
         self.fig.canvas.mpl_connect('scroll_event', self.on_scroll)
         self.draw(0)
         plt.show()
