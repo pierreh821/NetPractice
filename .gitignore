@@ -1,2 +1,3 @@
 uv.lock
 .mypy_cache
+__pycache__
