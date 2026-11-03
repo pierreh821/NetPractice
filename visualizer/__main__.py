@@ -12,7 +12,7 @@ MASKS = {
         }
 
 
-def bin_to_dec(mask: int, byte: int):
+def bin_to_cidr(mask: int, byte: int):
     res = ['1' * 8 for _ in range(byte - 1)]
     res.append(str(bin(mask)))
     return ''.join(res).count('1')
@@ -62,7 +62,7 @@ class Visualizer:
             self.current.extend(container.patches)
             self.current.append(left_id)
 
-        self.ax.set_title(f"mask {mask} (/{bin_to_dec(mask, self.byte)}) : "
+        self.ax.set_title(f"mask {mask} (/{bin_to_cidr(mask, self.byte)}) : "
                           f"{256 // size} subnets of {size} adresses each")
         self.fig.canvas.draw_idle()
 
