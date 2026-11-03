@@ -1,3 +1,4 @@
 uv.lock
 .mypy_cache
 __pycache__
+netpractice_visualizer.egg-info
